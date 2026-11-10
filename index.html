@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f8fafc">
+    <title>Qarz Daftari</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: light; --brand: #4f46e5; --ink: #172033; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: #edf0f5; color: var(--ink); font-family: 'DM Sans', sans-serif; }
+        button, input, select, textarea { font: inherit; }
+        .app-shell { max-width: 480px; min-height: 100dvh; margin: 0 auto; background: #f8fafc; position: relative; overflow: hidden; box-shadow: 0 0 60px #25304a12; }
+        .safe-top { padding-top: max(10px, env(safe-area-inset-top)); }
+        .safe-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+        .screen { display: none; animation: appear .22s ease-out; }
+        .screen.active { display: block; }
+        @keyframes appear { from { opacity: .4; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-active { color: #4f46e5; }
+        .nav-active .nav-icon-wrap { background: #eeedff; }
+        .sheet-backdrop { opacity: 0; visibility: hidden; transition: .25s ease; }
+        .sheet-backdrop.open { opacity: 1; visibility: visible; }
+        .bottom-sheet { max-height: 92dvh; overflow-y: auto; transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+        .sheet-backdrop.open .bottom-sheet { transform: translateY(0); }
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { scrollbar-width: none; }
+        .balance-glow { background: radial-gradient(ellipse at 100% 0%, #7772ff 0, transparent 46%), linear-gradient(135deg,#262a68,#3839a0 60%,#5147d9); }
+        .field { width: 100%; border: 1px solid #e8ebf1; background: #f8fafc; border-radius: 14px; padding: 13px 14px; outline: none; color: #172033; }
+        .field:focus { border-color: #8b87f4; box-shadow: 0 0 0 3px #4f46e51a; }
+        .toast { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; transition: .22s; }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        @media (min-width: 600px) { body { padding: 24px 0; } .app-shell { min-height: min(900px, calc(100dvh - 48px)); border-radius: 32px; } }
+    </style>
+</head>
+<body>
+<div class="app-shell" id="app">
+    <div class="safe-top px-5">
+        <div class="flex h-7 items-center justify-between text-[12px] font-bold text-slate-800">
+            <span id="status-time">09:41</span>
+            <div class="flex items-center gap-1.5"><i data-lucide="signal" class="h-3.5 w-3.5"></i><i data-lucide="wifi" class="h-3.5 w-3.5"></i><i data-lucide="battery-full" class="h-4 w-4"></i></div>
+        </div>
+    </div>
+    <header class="px-5 pb-3 pt-2">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="grid h-10 w-10 place-items-center rounded-[14px] bg-indigo-600 text-white shadow-lg shadow-indigo-200"><i data-lucide="notebook-pen" class="h-[21px] w-[21px]"></i></div>
+                <div><p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Shaxsiy hisob</p><h1 class="text-[19px] font-extrabold leading-tight tracking-tight">Qarz Daftari</h1></div>
+            </div>
+            <button id="search-toggle" aria-label="Qidirish" class="grid h-10 w-10 place-items-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-100"><i data-lucide="search" class="h-[19px] w-[19px]"></i></button>
+        </div>
+        <div id="search-wrap" class="hidden pt-4"><div class="relative"><i data-lucide="search" class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i><input id="search-input" class="field !rounded-full !bg-white !py-3 !pl-10" placeholder="Mijozni qidirish..." autocomplete="off"></div></div>
+    </header>
+
+    <main class="scrollbar-none overflow-y-auto px-5 pb-28" style="max-height: calc(100dvh - 164px);">
+        <section id="screen-home" class="screen active">
+            <div class="balance-glow relative overflow-hidden rounded-[24px] p-5 text-white shadow-xl shadow-indigo-200/50">
+                <div class="absolute -right-7 -top-9 h-36 w-36 rounded-full border border-white/10"></div><div class="absolute -right-1 -top-4 h-24 w-24 rounded-full border border-white/10"></div>
+                <div class="relative flex items-center justify-between"><div class="flex items-center gap-2 text-[13px] font-medium text-indigo-100"><i data-lucide="wallet" class="h-4 w-4"></i> Umumiy hisob</div><button id="visibility-toggle" aria-label="Summalarni yashirish" class="rounded-full p-1.5 text-indigo-100 hover:bg-white/10"><i data-lucide="eye" class="h-4 w-4"></i></button></div>
+                <div id="total-lines" class="relative mt-5 grid grid-cols-2 gap-3"></div>
+                <div class="relative mt-4 flex items-center gap-1.5 text-[11px] text-indigo-100"><i data-lucide="info" class="h-3.5 w-3.5"></i> Valyutalar alohida hisoblanadi</div>
+            </div>
+            <div class="mt-6 flex items-center justify-between"><div><h2 class="text-[17px] font-extrabold tracking-tight">Mijozlar</h2><p id="customer-count" class="mt-0.5 text-xs text-slate-400"></p></div><button id="add-customer-shortcut" class="flex items-center gap-1 rounded-full bg-white px-3 py-2 text-xs font-bold text-indigo-600 shadow-sm ring-1 ring-slate-100"><i data-lucide="user-plus" class="h-4 w-4"></i> Yangi</button></div>
+            <div id="home-customers" class="mt-3 space-y-2.5"></div>
+            <button data-open-sheet class="fixed bottom-[95px] right-[max(calc((100vw-440px)/2),24px)] z-20 grid h-14 w-14 place-items-center rounded-[19px] bg-indigo-600 text-white shadow-xl shadow-indigo-300/70 transition active:scale-95" aria-label="Qarz qo'shish"><i data-lucide="plus" class="h-6 w-6"></i></button>
+        </section>
+
+        <section id="screen-customers" class="screen">
+            <div class="mb-4 flex items-end justify-between"><div><p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Hisob-kitob</p><h2 class="mt-1 text-[23px] font-extrabold tracking-tight">Barcha mijozlar</h2></div><span id="customer-count-page" class="rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600"></span></div>
+            <div id="all-customers" class="space-y-2.5"></div>
+            <button data-open-sheet class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 py-3.5 font-bold text-white shadow-lg shadow-indigo-200"><i data-lucide="plus" class="h-4 w-4"></i> Yozuv qo'shish</button>
+        </section>
+
+        <section id="screen-stats" class="screen">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Moliyaviy ko'rinish</p><h2 class="mt-1 text-[23px] font-extrabold tracking-tight">Statistika</h2>
+            <div id="stats-summary" class="mt-5 space-y-3"></div>
+            <div class="mt-5 rounded-[20px] bg-white p-4 shadow-sm ring-1 ring-slate-100"><h3 class="font-bold">So'nggi yozuvlar</h3><div id="recent-transactions" class="mt-3 divide-y divide-slate-100"></div></div>
+        </section>
+
+        <section id="screen-settings" class="screen">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Ilova</p><h2 class="mt-1 text-[23px] font-extrabold tracking-tight">Sozlamalar</h2>
+            <div class="mt-5 overflow-hidden rounded-[20px] bg-white shadow-sm ring-1 ring-slate-100">
+                <div class="flex items-center gap-3 border-b border-slate-100 p-4"><div class="grid h-10 w-10 place-items-center rounded-[14px] bg-indigo-50 text-indigo-600"><i data-lucide="database" class="h-5 w-5"></i></div><div class="flex-1"><p class="text-sm font-bold">Ma'lumotlar</p><p class="text-xs text-slate-400">Ushbu qurilmada saqlanadi</p></div><span class="h-2 w-2 rounded-full bg-green-500"></span></div>
+                <button id="export-data" class="flex w-full items-center gap-3 border-b border-slate-100 p-4 text-left"><div class="grid h-10 w-10 place-items-center rounded-[14px] bg-blue-50 text-blue-600"><i data-lucide="download" class="h-5 w-5"></i></div><div class="flex-1"><p class="text-sm font-bold">Zaxira nusxa</p><p class="text-xs text-slate-400">Ma'lumotlarni faylga yuklab olish</p></div><i data-lucide="chevron-right" class="h-4 w-4 text-slate-300"></i></button>
+                <button id="reset-data" class="flex w-full items-center gap-3 p-4 text-left"><div class="grid h-10 w-10 place-items-center rounded-[14px] bg-red-50 text-red-600"><i data-lucide="rotate-ccw" class="h-5 w-5"></i></div><div class="flex-1"><p class="text-sm font-bold text-red-600">Namunaviy ma'lumotlarni tiklash</p><p class="text-xs text-slate-400">Boshlang'ich sinov yozuvlarini qaytarish</p></div><i data-lucide="chevron-right" class="h-4 w-4 text-slate-300"></i></button>
+            </div>
+            <p class="mt-5 text-center text-xs text-slate-400">Qarz Daftari · Shaxsiy hisobingiz</p>
+        </section>
+
+        <section id="screen-ledger" class="screen">
+            <button id="ledger-back" class="mb-4 flex items-center gap-1 text-sm font-bold text-indigo-600"><i data-lucide="arrow-left" class="h-4 w-4"></i> Ortga</button>
+            <div id="ledger-header"></div>
+            <button id="reminder-button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#eafaf0] py-3.5 font-bold text-green-700"><i data-lucide="send" class="h-4 w-4"></i> Eslatma yuborish</button>
+            <div class="mb-3 mt-6 flex items-center justify-between"><h3 class="font-extrabold">Qarzlar tarixi</h3><span id="ledger-count" class="text-xs text-slate-400"></span></div>
+            <div id="ledger-list" class="space-y-2.5"></div>
+            <button data-open-sheet class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 py-3.5 font-bold text-white"><i data-lucide="plus" class="h-4 w-4"></i> Yangi yozuv</button>
+        </section>
+    </main>
+
+    <nav class="safe-bottom absolute inset-x-0 bottom-0 z-30 border-t border-slate-100 bg-white/95 px-3 pt-2 backdrop-blur-xl">
+        <div class="grid grid-cols-4">
+            <button class="nav-item nav-active flex flex-col items-center gap-1 py-1 text-[10px] font-semibold" data-screen="home"><span class="nav-icon-wrap grid h-8 w-12 place-items-center rounded-full"><i data-lucide="house" class="h-[19px] w-[19px]"></i></span>Asosiy</button>
+            <button class="nav-item flex flex-col items-center gap-1 py-1 text-[10px] font-semibold text-slate-400" data-screen="customers"><span class="nav-icon-wrap grid h-8 w-12 place-items-center rounded-full"><i data-lucide="users-round" class="h-[19px] w-[19px]"></i></span>Mijozlar</button>
+            <button class="nav-item flex flex-col items-center gap-1 py-1 text-[10px] font-semibold text-slate-400" data-screen="stats"><span class="nav-icon-wrap grid h-8 w-12 place-items-center rounded-full"><i data-lucide="chart-no-axes-column-increasing" class="h-[19px] w-[19px]"></i></span>Statistika</button>
+            <button class="nav-item flex flex-col items-center gap-1 py-1 text-[10px] font-semibold text-slate-400" data-screen="settings"><span class="nav-icon-wrap grid h-8 w-12 place-items-center rounded-full"><i data-lucide="settings-2" class="h-[19px] w-[19px]"></i></span>Sozlamalar</button>
+        </div>
+    </nav>
+
+    <div id="sheet-backdrop" class="sheet-backdrop fixed inset-0 z-40 flex items-end justify-center bg-slate-950/40">
+        <div class="bottom-sheet w-full max-w-[480px] rounded-t-[28px] bg-white px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-3 shadow-2xl">
+            <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-200"></div>
+            <div class="mb-4 flex items-center justify-between"><div><p class="text-xs font-semibold text-slate-400">Yangi qayd</p><h2 class="text-xl font-extrabold">Qarz qo'shish</h2></div><button id="close-sheet" aria-label="Yopish" class="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500"><i data-lucide="x" class="h-4 w-4"></i></button></div>
+            <form id="transaction-form" class="space-y-3.5">
+                <div><label class="mb-1.5 block text-xs font-bold text-slate-600">Mijoz</label><select id="customer-select" class="field" required></select><input id="new-customer" class="field mt-2 hidden" placeholder="Mijozning ismi" maxlength="60" autocomplete="name"></div>
+                <div><label class="mb-1.5 block text-xs font-bold text-slate-600">Summa</label><div class="flex gap-2"><input id="amount-input" class="field min-w-0 flex-1 text-lg font-bold" type="number" min="1" step="any" placeholder="0" required inputmode="decimal"><select id="currency-input" class="field !w-[92px] !px-3 font-bold"><option value="UZS">so'm</option><option value="USD">$</option></select></div></div>
+                <div><label class="mb-1.5 block text-xs font-bold text-slate-600">Yozuv turi</label><div class="grid grid-cols-2 gap-2"><button type="button" class="type-option rounded-[14px] border-2 border-green-600 bg-green-50 p-3 text-sm font-bold text-green-700" data-type="gave"><span class="flex items-center justify-center gap-1.5"><i data-lucide="arrow-up-right" class="h-4 w-4"></i> Berdim</span><span class="mt-0.5 block text-[10px] font-medium opacity-70">U menga qaytaradi</span></button><button type="button" class="type-option rounded-[14px] border border-slate-200 bg-white p-3 text-sm font-bold text-slate-500" data-type="received"><span class="flex items-center justify-center gap-1.5"><i data-lucide="arrow-down-left" class="h-4 w-4"></i> Oldim</span><span class="mt-0.5 block text-[10px] font-medium opacity-70">Men qaytaraman</span></button></div></div>
+                <div class="grid grid-cols-2 gap-2"><div><label class="mb-1.5 block text-xs font-bold text-slate-600">Sana</label><input id="date-input" class="field" type="date" required></div><div><label class="mb-1.5 block text-xs font-bold text-slate-600">Izoh</label><input id="note-input" class="field" placeholder="Ixtiyoriy" maxlength="120"></div></div>
+                <button class="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 py-3.5 font-bold text-white shadow-lg shadow-indigo-200" type="submit"><i data-lucide="check" class="h-4 w-4"></i> Saqlash</button>
+            </form>
+        </div>
+    </div>
+    <div id="toast" class="toast fixed bottom-24 left-1/2 z-50 whitespace-nowrap rounded-full bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-xl"></div>
+</div>
+<script>
+(() => {
+    const STORAGE_KEY = 'qarz-daftari-v1';
+    const today = new Date().toISOString().slice(0, 10);
+    const sampleData = { customers: [], transactions: [] };
+    let data;
+    try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || structuredClone(sampleData); }
+    catch { data = structuredClone(sampleData); }
+    if (!data || !Array.isArray(data.customers) || !Array.isArray(data.transactions)) data = structuredClone(sampleData);
+    const demoCustomerIds = new Set(['c-anvar', 'c-malika', 'c-aziz']);
+    const demoTransactionIds = new Set(['t-1', 't-2', 't-3']);
+    data.transactions = data.transactions.filter((item) => !demoTransactionIds.has(item.id));
+    data.customers = data.customers.filter((customer) => !demoCustomerIds.has(customer.id) || data.transactions.some((item) => item.customerId === customer.id));
+    let selectedType = 'gave';
+    let currentCustomerId = null;
+    let currentScreen = 'home';
+    let hideAmounts = false;
+    let toastTimer;
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const currencyLabel = (currency) => currency === 'USD' ? '$' : "so'm";
+    const formatAmount = (amount, currency, compact = false) => {
+        const rounded = currency === 'UZS' ? Math.round(amount) : Math.round(amount * 100) / 100;
+        const number = new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: currency === 'USD' ? 2 : 0, notation: compact && Math.abs(rounded) >= 1000000 ? 'compact' : 'standard' }).format(rounded);
+        return `${number} ${currencyLabel(currency)}`;
+    };
+    const formatDate = (date) => {
+        const [year, month, day] = date.split('-').map(Number);
+        const months = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+        return `${day}-${months[month - 1]} ${year}`;
+    };
+    const customerTransactions = (id) => data.transactions.filter((item) => item.customerId === id);
+    const customerBalances = (id) => customerTransactions(id).reduce((balances, item) => {
+        balances[item.currency] = (balances[item.currency] || 0) + (item.type === 'gave' ? item.amount : -item.amount);
+        return balances;
+    }, {});
+    const balanceMarkup = (balances, compact = false) => {
+        const entries = Object.entries(balances).filter(([, amount]) => Math.abs(amount) > 0.00001);
+        if (!entries.length) return '<span class="text-xs font-semibold text-slate-400">Hisob teng</span>';
+        return entries.map(([currency, amount]) => `<span class="block whitespace-nowrap text-[13px] font-extrabold ${amount > 0 ? 'text-green-700' : 'text-red-600'}">${hideAmounts ? '••••••' : escapeHTML(formatAmount(Math.abs(amount), currency, compact))}</span>`).join('');
+    };
+    const initials = (name) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] || '').join('').toLocaleUpperCase('uz-UZ');
+    const avatarColor = (name) => ['bg-indigo-100 text-indigo-700', 'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700', 'bg-rose-100 text-rose-700', 'bg-sky-100 text-sky-700'][[...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 5];
+    const latestTransaction = (id) => customerTransactions(id).sort((a, b) => b.date.localeCompare(a.date))[0];
+    const showToast = (message) => {
+        const toast = $('#toast'); toast.textContent = message; toast.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2300);
+    };
+    const refreshIcons = () => { if (window.lucide) lucide.createIcons(); };
+    const customerCard = (customer) => {
+        const latest = latestTransaction(customer.id);
+        return `<button class="customer-card flex w-full items-center gap-3 rounded-[18px] bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-100 transition active:scale-[.99]" data-customer="${escapeHTML(customer.id)}"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] text-sm font-extrabold ${avatarColor(customer.name)}">${escapeHTML(initials(customer.name))}</span><span class="min-w-0 flex-1"><span class="block truncate text-[14px] font-bold text-slate-800">${escapeHTML(customer.name)}</span><span class="mt-1 block truncate text-[11px] text-slate-400">${latest ? `${latest.type === 'gave' ? 'Qarz berdim' : 'Qarz oldim'} · ${escapeHTML(formatDate(latest.date))}` : 'Hali yozuv yo‘q'}</span></span><span class="shrink-0 text-right">${balanceMarkup(customerBalances(customer.id), true)}</span><i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-slate-300"></i></button>`;
+    };
+    const renderTotals = () => {
+        const totals = data.transactions.reduce((result, item) => {
+            const key = item.type === 'gave' ? 'receivable' : 'payable';
+            result[key][item.currency] = (result[key][item.currency] || 0) + item.amount;
+            return result;
+        }, { receivable: {}, payable: {} });
+        const value = (values) => {
+            const entries = Object.entries(values);
+            return entries.length ? entries.map(([currency, amount]) => `<span class="block text-[17px] font-extrabold leading-tight">${hideAmounts ? '••••••' : escapeHTML(formatAmount(amount, currency, true))}</span>`).join('') : '<span class="text-[17px] font-extrabold">0 so\'m</span>';
+        };
+        $('#total-lines').innerHTML = `<div class="rounded-[16px] bg-white/10 p-3"><div class="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-indigo-100"><span class="h-1.5 w-1.5 rounded-full bg-red-300"></span> Jami berasiz</div>${value(totals.payable)}</div><div class="rounded-[16px] bg-white/10 p-3"><div class="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-indigo-100"><span class="h-1.5 w-1.5 rounded-full bg-green-300"></span> Jami olasiz</div>${value(totals.receivable)}</div>`;
+    };
+    const renderCustomers = () => {
+        const query = $('#search-input').value.trim().toLocaleLowerCase('uz-UZ');
+        const customers = [...data.customers].sort((a, b) => (latestTransaction(b.id)?.date || '').localeCompare(latestTransaction(a.id)?.date || '') || a.name.localeCompare(b.name, 'uz'))
+            .filter((customer) => customer.name.toLocaleLowerCase('uz-UZ').includes(query));
+        $('#customer-count').textContent = `${data.customers.length} ta mijoz`;
+        $('#customer-count-page').textContent = `${data.customers.length} ta`;
+        const content = customers.length ? customers.map(customerCard).join('') : '<div class="rounded-[18px] bg-white px-4 py-10 text-center text-sm text-slate-400 shadow-sm">Mijoz topilmadi</div>';
+        $('#home-customers').innerHTML = content;
+        $('#all-customers').innerHTML = content;
+    };
+    const renderStats = () => {
+        const currencies = [...new Set(data.transactions.map((item) => item.currency))];
+        $('#stats-summary').innerHTML = currencies.length ? currencies.map((currency) => {
+            const entries = data.transactions.filter((item) => item.currency === currency);
+            const gave = entries.filter((item) => item.type === 'gave').reduce((sum, item) => sum + item.amount, 0);
+            const received = entries.filter((item) => item.type === 'received').reduce((sum, item) => sum + item.amount, 0);
+            return `<div class="rounded-[20px] bg-white p-4 shadow-sm ring-1 ring-slate-100"><div class="flex items-center justify-between"><h3 class="font-bold">${currency === 'USD' ? 'AQSH dollari' : "O'zbek so'mi"}</h3><span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">${currencyLabel(currency)}</span></div><div class="mt-4 grid grid-cols-2 gap-3"><div class="rounded-[14px] bg-green-50 p-3"><p class="text-[11px] text-green-700">Berilgan</p><p class="mt-1 text-sm font-extrabold text-green-800">${hideAmounts ? '••••••' : escapeHTML(formatAmount(gave, currency))}</p></div><div class="rounded-[14px] bg-red-50 p-3"><p class="text-[11px] text-red-700">Olingan</p><p class="mt-1 text-sm font-extrabold text-red-800">${hideAmounts ? '••••••' : escapeHTML(formatAmount(received, currency))}</p></div></div></div>`;
+        }).join('') : '<div class="rounded-[18px] bg-white p-6 text-center text-sm text-slate-400">Hozircha statistika yo‘q</div>';
+        const recent = [...data.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+        $('#recent-transactions').innerHTML = recent.length ? recent.map((item) => {
+            const customer = data.customers.find((entry) => entry.id === item.customerId);
+            const gave = item.type === 'gave';
+            return `<div class="flex items-center gap-3 py-3"><span class="grid h-9 w-9 place-items-center rounded-xl ${gave ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}"><i data-lucide="${gave ? 'arrow-up-right' : 'arrow-down-left'}" class="h-4 w-4"></i></span><span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold">${escapeHTML(customer?.name || 'Mijoz')}</span><span class="text-[11px] text-slate-400">${escapeHTML(formatDate(item.date))}${item.note ? ` · ${escapeHTML(item.note)}` : ''}</span></span><span class="text-right text-sm font-extrabold ${gave ? 'text-green-700' : 'text-red-600'}">${hideAmounts ? '••••' : `${gave ? '+' : '−'}${escapeHTML(formatAmount(item.amount, item.currency))}`}</span></div>`;
+        }).join('') : '<p class="py-5 text-center text-sm text-slate-400">Hozircha yozuv yo‘q</p>';
+    };
+    const renderLedger = () => {
+        const customer = data.customers.find((item) => item.id === currentCustomerId);
+        if (!customer) return showScreen('customers');
+        const balances = customerBalances(customer.id);
+        $('#ledger-header').innerHTML = `<div class="flex items-center gap-3"><span class="grid h-14 w-14 place-items-center rounded-[18px] text-lg font-extrabold ${avatarColor(customer.name)}">${escapeHTML(initials(customer.name))}</span><div class="min-w-0 flex-1"><h2 class="truncate text-xl font-extrabold">${escapeHTML(customer.name)}</h2><p class="mt-1 text-xs text-slate-400">Joriy balans</p></div><div class="text-right">${balanceMarkup(balances)}</div></div>`;
+        const items = customerTransactions(customer.id).sort((a, b) => b.date.localeCompare(a.date));
+        $('#ledger-count').textContent = `${items.length} ta yozuv`;
+        $('#ledger-list').innerHTML = items.length ? items.map((item) => {
+            const gave = item.type === 'gave';
+            return `<div class="flex items-center gap-3 rounded-[18px] bg-white p-3.5 shadow-sm ring-1 ring-slate-100"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] ${gave ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}"><i data-lucide="${gave ? 'arrow-up-right' : 'arrow-down-left'}" class="h-[18px] w-[18px]"></i></span><span class="min-w-0 flex-1"><span class="block text-sm font-bold">${gave ? 'Qarz berdim' : 'Qarz oldim'}</span><span class="mt-0.5 block truncate text-[11px] text-slate-400">${escapeHTML(formatDate(item.date))}${item.note ? ` · ${escapeHTML(item.note)}` : ''}</span></span><span class="shrink-0 text-sm font-extrabold ${gave ? 'text-green-700' : 'text-red-600'}">${hideAmounts ? '••••' : `${gave ? '+' : '−'}${escapeHTML(formatAmount(item.amount, item.currency))}`}</span></div>`;
+        }).join('') : '<div class="rounded-[18px] bg-white py-10 text-center text-sm text-slate-400 shadow-sm">Bu mijoz bilan hali yozuv yo‘q</div>';
+    };
+    const render = () => { renderTotals(); renderCustomers(); renderStats(); if (currentScreen === 'ledger') renderLedger(); refreshIcons(); };
+    function showScreen(name) {
+        currentScreen = name;
+        document.querySelectorAll('.screen').forEach((section) => section.classList.toggle('active', section.id === `screen-${name}`));
+        document.querySelectorAll('.nav-item').forEach((button) => {
+            const active = button.dataset.screen === name;
+            button.classList.toggle('nav-active', active);
+            button.classList.toggle('text-slate-400', !active);
+        });
+        $('#search-wrap').classList.toggle('hidden', name !== 'home' && name !== 'customers');
+        if (name === 'ledger') renderLedger();
+        $('main').scrollTo({ top: 0, behavior: 'smooth' });
+        refreshIcons();
+    }
+    const openLedger = (id) => { currentCustomerId = id; showScreen('ledger'); };
+    const openSheet = (customerId = '') => {
+        const select = $('#customer-select');
+        select.innerHTML = `<option value="">Mijozni tanlang</option>${data.customers.map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`).join('')}<option value="__new__">+ Yangi mijoz</option>`;
+        select.value = customerId || '';
+        $('#new-customer').classList.toggle('hidden', Boolean(customerId));
+        $('#new-customer').required = false;
+        $('#amount-input').value = '';
+        $('#currency-input').value = 'UZS';
+        $('#date-input').value = today;
+        $('#note-input').value = '';
+        setTransactionType('gave');
+        $('#sheet-backdrop').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    };
+    const closeSheet = () => { $('#sheet-backdrop').classList.remove('open'); document.body.style.overflow = ''; };
+    function setTransactionType(type) {
+        selectedType = type;
+        document.querySelectorAll('.type-option').forEach((button) => {
+            const active = button.dataset.type === type;
+            const gave = button.dataset.type === 'gave';
+            button.className = `type-option rounded-[14px] border-2 p-3 text-sm font-bold ${active ? (gave ? 'border-green-600 bg-green-50 text-green-700' : 'border-red-600 bg-red-50 text-red-700') : 'border-slate-200 bg-white text-slate-500'}`;
+        });
+    }
+    document.querySelectorAll('.nav-item').forEach((button) => button.addEventListener('click', () => showScreen(button.dataset.screen)));
+    document.addEventListener('click', (event) => {
+        const card = event.target.closest('[data-customer]');
+        if (card) openLedger(card.dataset.customer);
+        if (event.target.closest('[data-open-sheet]')) openSheet(currentScreen === 'ledger' ? currentCustomerId : '');
+    });
+    $('#search-toggle').addEventListener('click', () => {
+        $('#search-wrap').classList.toggle('hidden');
+        if (!$('#search-wrap').classList.contains('hidden')) $('#search-input').focus();
+        else { $('#search-input').value = ''; renderCustomers(); }
+    });
+    $('#search-input').addEventListener('input', renderCustomers);
+    $('#add-customer-shortcut').addEventListener('click', () => openSheet());
+    $('#close-sheet').addEventListener('click', closeSheet);
+    $('#sheet-backdrop').addEventListener('click', (event) => { if (event.target === $('#sheet-backdrop')) closeSheet(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeSheet(); });
+    $('#customer-select').addEventListener('change', (event) => {
+        const isNew = event.target.value === '__new__';
+        $('#new-customer').classList.toggle('hidden', !isNew);
+        $('#new-customer').required = isNew;
+        if (isNew) $('#new-customer').focus();
+    });
+    document.querySelectorAll('.type-option').forEach((button) => button.addEventListener('click', () => setTransactionType(button.dataset.type)));
+    $('#transaction-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const selectValue = $('#customer-select').value;
+        let customerId = selectValue;
+        if (selectValue === '__new__') {
+            const name = $('#new-customer').value.trim();
+            if (!name) return;
+            const customer = { id: `c-${Date.now()}`, name, phone: '' };
+            data.customers.push(customer); customerId = customer.id;
+        }
+        const amount = Number($('#amount-input').value);
+        if (!customerId || !Number.isFinite(amount) || amount <= 0) return showToast('Mijoz va summani to‘g‘ri kiriting');
+        data.transactions.push({ id: `t-${Date.now()}`, customerId, amount, currency: $('#currency-input').value, type: selectedType, date: $('#date-input').value, note: $('#note-input').value.trim() });
+        save(); closeSheet(); render(); showToast('Yozuv saqlandi');
+    });
+    $('#ledger-back').addEventListener('click', () => showScreen('customers'));
+    $('#reminder-button').addEventListener('click', () => {
+        const customer = data.customers.find((item) => item.id === currentCustomerId);
+        const balances = customerBalances(currentCustomerId);
+        const amounts = Object.entries(balances).filter(([, amount]) => Math.abs(amount) > 0.00001).map(([currency, amount]) => `${formatAmount(Math.abs(amount), currency)} ${amount > 0 ? 'qarzingizni' : 'qarzimni'}`);
+        if (!amounts.length) return showToast('Ushbu mijoz bilan hisob teng');
+        const text = `${customer.name}, salom! Sizdan ${amounts.join(' va ')} eslatmoqchi edim. Qarz Daftari`;
+        window.open(`https://t.me/share/url?url=&text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    });
+    $('#visibility-toggle').addEventListener('click', () => {
+        hideAmounts = !hideAmounts;
+        $('#visibility-toggle').innerHTML = `<i data-lucide="${hideAmounts ? 'eye-off' : 'eye'}" class="h-4 w-4"></i>`;
+        render();
+    });
+    $('#export-data').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `qarz-daftari-${today}.json`; link.click(); URL.revokeObjectURL(link.href); showToast('Zaxira nusxa tayyor');
+    });
+    $('#reset-data').addEventListener('click', () => {
+        if (!confirm('Barcha joriy yozuvlar namunaviy ma’lumotlar bilan almashtirilsinmi?')) return;
+        data = structuredClone(sampleData); save(); showScreen('home'); render(); showToast('Namunaviy ma’lumotlar tiklandi');
+    });
+    const updateTime = () => { $('#status-time').textContent = new Intl.DateTimeFormat('uz-UZ', { hour: '2-digit', minute: '2-digit' }).format(new Date()); };
+    updateTime(); setInterval(updateTime, 60000); save(); render();
+})();
+</script>
+</body>
+</html>
